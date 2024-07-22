@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'calendar_screen.dart';
+import 'diary_screen.dart';
 
 class CustomDrawer extends StatelessWidget {
   const CustomDrawer({super.key});
@@ -8,42 +10,54 @@ class CustomDrawer extends StatelessWidget {
     return Drawer(
       child: ListView(
         padding: EdgeInsets.zero,
-        children: [
-          const DrawerHeader(
+        children: <Widget>[
+          DrawerHeader(
             decoration: BoxDecoration(
-              color: Colors.blue,
+              color: Theme.of(context).primaryColor,
             ),
-            child: Text("안녕하세요"),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'My App',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '집에가고싶다',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
+              ],
+            ),
           ),
           ListTile(
-            title: const Text("Menu 1"),
+            leading: const Icon(Icons.calendar_today),
+            title: const Text('To-do List'),
             onTap: () {
-              // Do something for Menu 1
-              Navigator.pop(context); // Close the drawer
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CalendarScreen()),
+              );
             },
           ),
           ListTile(
-            title: const Text("Menu 2"),
+            leading: const Icon(Icons.book),
+            title: const Text('Diary'),
             onTap: () {
-              // Do something for Menu 2
-              Navigator.pop(context); // Close the drawer
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const DiaryScreen()),
+              );
             },
           ),
-          ListTile(
-            title: const Text("Menu 3"),
-            onTap: () {
-              // Do something for Menu 3
-              Navigator.pop(context); // Close the drawer
-            },
-          ),
-          ListTile(
-            title: const Text("Menu 4"),
-            onTap: () {
-              // Do something for Menu 4
-              Navigator.pop(context); // Close the drawer
-            },
-          ),
-          // Add more ListTile widgets as needed
+          // Add more ListTiles here for other options if needed
         ],
       ),
     );
