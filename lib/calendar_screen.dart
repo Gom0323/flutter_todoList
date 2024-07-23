@@ -1,7 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
+import 'package:intl/intl.dart';
 import 'custom_drawer.dart';
+import 'textform.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -12,6 +13,7 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime selectedDate = DateTime.now();
+  DateTime focusedDate = DateTime.now(); // focusedDate 상태 변수 선언
   final List<Map<String, String>> tasks = [];
   final TextEditingController taskController = TextEditingController();
 
@@ -59,6 +61,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     setState(() {
       selectedDate = selectedDay;
+      focusedDate = focusedDay;
     });
     _loadTasks();
   }
@@ -70,10 +73,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   @override
+  void dispose() {
+    taskController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     var dailyTasks = tasks
         .where((task) => isSameDay(DateTime.parse(task['date']!), selectedDate))
         .toList();
+
+    String currentYearMonth = DateFormat.yMMMM('ko_KR').format(focusedDate);
 
     return Scaffold(
       appBar: AppBar(
@@ -82,15 +93,45 @@ class _CalendarScreenState extends State<CalendarScreen> {
       drawer: const CustomDrawer(),
       body: Column(
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_left),
+                onPressed: () {
+                  setState(() {
+                    focusedDate =
+                        DateTime(focusedDate.year, focusedDate.month - 1);
+                  });
+                },
+              ),
+              IconButton(
+                icon: const Icon(Icons.arrow_right),
+                onPressed: () {
+                  setState(() {
+                    focusedDate =
+                        DateTime(focusedDate.year, focusedDate.month + 1);
+                  });
+                },
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(
+              currentYearMonth,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ),
           TableCalendar(
             onDaySelected: onDaySelected,
+            headerVisible: false,
             selectedDayPredicate: (date) {
               return isSameDay(selectedDate, date);
             },
-            focusedDay: selectedDate,
+            focusedDay: focusedDate,
             firstDay: DateTime(2023, 1, 1),
             lastDay: DateTime(2030, 12, 31),
-            // locale: 'ko-KR',
             daysOfWeekHeight: 30,
             eventLoader: (day) {
               return tasks
@@ -134,28 +175,44 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     );
                 }
               },
+              defaultBuilder: (context, date, _) => Container(
+                margin: const EdgeInsets.all(4.0),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.rectangle,
+                  borderRadius: BorderRadius.circular(8.0),
+                  border: Border.all(color: Colors.grey, width: 1.0),
+                ),
+                child: Text(
+                  date.day.toString(),
+                  style: const TextStyle(color: Colors.black),
+                ),
+              ),
               selectedBuilder: (context, date, _) => Container(
                 margin: const EdgeInsets.all(4.0),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.green, width: 1.5)),
+                  color: Colors.lightBlue,
+                  shape: BoxShape.rectangle,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
                 child: Text(
                   date.day.toString(),
-                  style: const TextStyle(color: Colors.black),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
               todayBuilder: (context, date, _) => Container(
                 margin: const EdgeInsets.all(4.0),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    shape: BoxShape.circle,
-                    border: Border.all(color: Colors.green, width: 1.5)),
+                  color: Colors.orange,
+                  shape: BoxShape.rectangle,
+                  borderRadius: BorderRadius.circular(8.0),
+                ),
                 child: Text(
                   date.day.toString(),
-                  style: const TextStyle(color: Colors.black),
+                  style: const TextStyle(color: Colors.white),
                 ),
               ),
             ),
@@ -186,26 +243,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
             ),
           ),
           const Divider(height: 1.0),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: taskController,
-                    decoration: const InputDecoration(
-                      labelText: '할 일 추가',
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    _addTask(taskController.text);
-                  },
-                ),
-              ],
-            ),
+          Textform(
+            controller: taskController,
+            onAdd: () {
+              _addTask(taskController.text);
+            },
           ),
         ],
       ),
