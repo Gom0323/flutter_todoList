@@ -3,6 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'custom_drawer.dart';
 import 'diary_textform.dart'; // 입력 폼 위젯 파일 불러오기
+import 'api_service.dart'; // ApiService 파일 불러오기
 
 class DiaryScreen extends StatefulWidget {
   const DiaryScreen({super.key});
@@ -15,40 +16,91 @@ class _DiaryScreenState extends State<DiaryScreen> {
   DateTime selectedDate = DateTime.now();
   DateTime focusedDate = DateTime.now();
   final TextEditingController diaryController = TextEditingController();
-  final Map<DateTime, Map<String, String>> diaryEntries = {};
+  final Map<DateTime, Map<String, dynamic>> diaryTasks = {}; // 수정된 부분
+  final ApiService apiService = ApiService(); // ApiService 인스턴스 생성
   String selectedWeather = '맑음'; // 초기 날씨 상태
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDiaryTasks();
+  }
+
+  void _loadDiaryTasks() async {
+    try {
+      final fetchedTasks = await apiService.fetchDiaryTasks();
+      setState(() {
+        diaryTasks.clear();
+        for (var task in fetchedTasks) {
+          DateTime date = DateTime.parse(task['date']);
+          diaryTasks[date] = {
+            'id': task['id'], // 추가된 부분
+            'entry': task['entry'],
+            'weather': task['weather'],
+          };
+        }
+      });
+    } catch (e) {
+      print('Failed to load diary tasks: $e');
+    }
+  }
+
+  void _saveDiaryTask() async {
+    final newTask = {
+      'date': selectedDate.toIso8601String(),
+      'entry': diaryController.text,
+      'weather': selectedWeather,
+    };
+    try {
+      await apiService.addDiaryTask(newTask);
+      _loadDiaryTasks();
+    } catch (e) {
+      print('Failed to save diary task: $e');
+    }
+  }
+
+  void _updateDiaryTask(int id, String entry) async {
+    final updatedTask = {
+      'date': selectedDate.toIso8601String(),
+      'entry': entry,
+      'weather': selectedWeather,
+    };
+    try {
+      await apiService.updateDiaryTask(id, updatedTask);
+      _loadDiaryTasks();
+    } catch (e) {
+      print('Failed to update diary task: $e');
+    }
+  }
+
+  void _deleteDiaryTask(int id) async {
+    try {
+      await apiService.deleteDiaryTask(id);
+      _loadDiaryTasks();
+    } catch (e) {
+      print('Failed to delete diary task: $e');
+    }
+  }
 
   void onDaySelected(DateTime selectedDay, DateTime focusedDay) {
     setState(() {
       selectedDate = selectedDay;
+      focusedDate = focusedDay;
     });
-    diaryController.text = diaryEntries[selectedDate]?['entry'] ?? '';
-    selectedWeather = diaryEntries[selectedDate]?['weather'] ?? '맑음';
-  }
-
-  void _saveDiaryEntry() {
-    setState(() {
-      diaryEntries[selectedDate] = {
-        'entry': diaryController.text,
-        'weather': selectedWeather,
-      };
-    });
-  }
-
-  void _deleteDiaryEntry(DateTime date) {
-    setState(() {
-      diaryEntries.remove(date);
-    });
-    if (isSameDay(date, selectedDate)) {
-      diaryController.clear();
-      selectedWeather = '맑음';
-    }
+    diaryController.text = diaryTasks[selectedDate]?['entry'] ?? '';
+    selectedWeather = diaryTasks[selectedDate]?['weather'] ?? '맑음';
   }
 
   bool isSameDay(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&
         date1.month == date2.month &&
         date1.day == date2.day;
+  }
+
+  @override
+  void dispose() {
+    diaryController.dispose();
+    super.dispose();
   }
 
   @override
@@ -103,7 +155,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
             lastDay: DateTime(2030, 12, 31),
             daysOfWeekHeight: 30,
             eventLoader: (day) {
-              return diaryEntries.containsKey(day) ? [diaryEntries[day]] : [];
+              return diaryTasks.containsKey(day) ? [diaryTasks[day]] : [];
             },
             calendarBuilders: CalendarBuilders(
               dowBuilder: (context, day) {
@@ -172,7 +224,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                 margin: const EdgeInsets.all(4.0),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Colors.orange,
+                  color: Colors.grey,
                   shape: BoxShape.rectangle,
                   borderRadius: BorderRadius.circular(8.0),
                 ),
@@ -193,9 +245,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     selectedWeather = newValue!;
                   });
                 },
-                onSave: _saveDiaryEntry,
+                onSave: _saveDiaryTask,
                 onDelete: () {
-                  _deleteDiaryEntry(selectedDate);
+                  int taskId = diaryTasks[selectedDate]?['id'] as int;
+                  _deleteDiaryTask(taskId);
                 },
               ),
             ),

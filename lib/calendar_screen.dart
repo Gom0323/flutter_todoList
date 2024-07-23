@@ -3,6 +3,7 @@ import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'custom_drawer.dart';
 import 'textform.dart';
+import 'api_service.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -14,27 +15,65 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime selectedDate = DateTime.now();
   DateTime focusedDate = DateTime.now(); // focusedDate 상태 변수 선언
-  final List<Map<String, String>> tasks = [];
+  final List<Map<String, dynamic>> tasks = [];
   final TextEditingController taskController = TextEditingController();
+  final ApiService apiService = ApiService(); // ApiService 인스턴스 생성
 
-  void _loadTasks() {
-    setState(() {
-      // DB연결 도저히못하겠음
-    });
+  @override
+  void initState() {
+    super.initState();
+    _loadTasks();
   }
 
-  void _addTask(String task) {
-    if (taskController.text.isNotEmpty) {
+  void _loadTasks() async {
+    try {
+      final tasksData = await apiService.fetchCalendarTasks();
       setState(() {
-        tasks.add({
-          'date': selectedDate.toIso8601String(),
-          'task': task,
-        });
+        tasks.clear();
+        tasks.addAll(tasksData);
       });
-      taskController.clear();
-      _loadTasks();
+    } catch (e) {
+      print('Failed to load tasks: $e');
+    }
+  }
+
+  void _addTask(String task) async {
+    if (taskController.text.isNotEmpty) {
+      final newTask = {
+        'date': selectedDate.toIso8601String(),
+        'task': task,
+      };
+      try {
+        await apiService.addCalendarTask(newTask);
+        _loadTasks();
+        taskController.clear();
+      } catch (e) {
+        print('Failed to add task: $e');
+      }
     } else {
       _showAlertDialog();
+    }
+  }
+
+  void _updateTask(int id, String task) async {
+    final updatedTask = {
+      'date': selectedDate.toIso8601String(),
+      'task': task,
+    };
+    try {
+      await apiService.updateCalendarTask(id, updatedTask);
+      _loadTasks();
+    } catch (e) {
+      print('Failed to update task: $e');
+    }
+  }
+
+  void _deleteTask(int id) async {
+    try {
+      await apiService.deleteCalendarTask(id);
+      _loadTasks();
+    } catch (e) {
+      print('Failed to delete task: $e');
     }
   }
 
@@ -50,6 +89,40 @@ class _CalendarScreenState extends State<CalendarScreen> {
               child: const Text('확인'),
               onPressed: () {
                 Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showEditDialog(Map<String, dynamic> task) {
+    TextEditingController editController =
+        TextEditingController(text: task['task']);
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('할 일 수정'),
+          content: TextField(
+            controller: editController,
+            decoration: const InputDecoration(labelText: '수정할 내용 입력'),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('취소'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: const Text('저장'),
+              onPressed: () {
+                Navigator.of(context).pop();
+                int taskId =
+                    task['id'] is int ? task['id'] : int.parse(task['id']);
+                _updateTask(taskId, editController.text);
               },
             ),
           ],
@@ -81,7 +154,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     var dailyTasks = tasks
-        .where((task) => isSameDay(DateTime.parse(task['date']!), selectedDate))
+        .where((task) => isSameDay(DateTime.parse(task['date']), selectedDate))
         .toList();
 
     String currentYearMonth = DateFormat.yMMMM('ko_KR').format(focusedDate);
@@ -135,8 +208,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             daysOfWeekHeight: 30,
             eventLoader: (day) {
               return tasks
-                  .where(
-                      (task) => isSameDay(DateTime.parse(task['date']!), day))
+                  .where((task) => isSameDay(DateTime.parse(task['date']), day))
                   .toList();
             },
             calendarBuilders: CalendarBuilders(
@@ -206,7 +278,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 margin: const EdgeInsets.all(4.0),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: Colors.orange,
+                  color: Colors.grey,
                   shape: BoxShape.rectangle,
                   borderRadius: BorderRadius.circular(8.0),
                 ),
@@ -221,20 +293,33 @@ class _CalendarScreenState extends State<CalendarScreen> {
             child: ListView.builder(
               itemCount: dailyTasks.length,
               itemBuilder: (context, index) {
+                final task = dailyTasks[index];
                 return Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 8.0, vertical: 4.0),
                   child: Card(
                     elevation: 4,
                     child: ListTile(
-                      title: Text(dailyTasks[index]['task']!),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () {
-                          setState(() {
-                            tasks.remove(dailyTasks[index]);
-                          });
-                        },
+                      title: Text(task['task']),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () {
+                              _showEditDialog(task);
+                            },
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () {
+                              int taskId = task['id'] is int
+                                  ? task['id']
+                                  : int.parse(task['id']);
+                              _deleteTask(taskId);
+                            },
+                          ),
+                        ],
                       ),
                     ),
                   ),
