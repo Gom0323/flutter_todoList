@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'custom_drawer.dart';
 import 'textform.dart';
 import 'api_service.dart';
+import 'task_item.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -14,10 +15,10 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   DateTime selectedDate = DateTime.now();
-  DateTime focusedDate = DateTime.now(); // focusedDate 상태 변수 선언
+  DateTime focusedDate = DateTime.now();
   final List<Map<String, dynamic>> tasks = [];
   final TextEditingController taskController = TextEditingController();
-  final ApiService apiService = ApiService(); // ApiService 인스턴스 생성
+  final ApiService apiService = ApiService();
 
   @override
   void initState() {
@@ -42,6 +43,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final newTask = {
         'date': selectedDate.toIso8601String(),
         'task': task,
+        'isCompleted': 0,
       };
       try {
         await apiService.addCalendarTask(newTask);
@@ -56,15 +58,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _updateTask(int id, String task) async {
-    final updatedTask = {
-      'date': selectedDate.toIso8601String(),
-      'task': task,
-    };
-    try {
-      await apiService.updateCalendarTask(id, updatedTask);
-      _loadTasks();
-    } catch (e) {
-      print('Failed to update task: $e');
+    if (task != null && task.isNotEmpty) {
+      final updatedTask = {
+        'date': DateFormat('yyyy-MM-dd').format(selectedDate),
+        'task': task,
+        'isCompleted': 0,
+      };
+      try {
+        await apiService.updateCalendarTask(id, updatedTask);
+        _loadTasks();
+      } catch (e) {
+        print('Failed to update task: $e');
+      }
+    } else {
+      print('Task is null or empty');
     }
   }
 
@@ -74,6 +81,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _loadTasks();
     } catch (e) {
       print('Failed to delete task: $e');
+    }
+  }
+
+  void _toggleTaskCompletion(int id, bool isCompleted) async {
+    final task = tasks.firstWhere((element) => element['id'] == id,
+        orElse: () => <String, dynamic>{});
+
+    if (task.isNotEmpty) {
+      final updatedTask = {
+        'date': task['date'], // 기존 date 값을 유지
+        'task': task['task'], // 기존 task 값을 유지
+        'isCompleted': isCompleted ? 1 : 0,
+      };
+
+      try {
+        await apiService.updateCalendarTask(id, updatedTask);
+        _loadTasks();
+      } catch (e) {
+        print('Failed to update task: $e');
+      }
+    } else {
+      print('Task not found for id $id'); // 디버깅을 위해 로그 추가
     }
   }
 
@@ -173,8 +202,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 icon: const Icon(Icons.arrow_left),
                 onPressed: () {
                   setState(() {
-                    focusedDate =
-                        DateTime(focusedDate.year, focusedDate.month - 1);
+                    focusedDate = DateTime(focusedDate.year,
+                        focusedDate.month - 1, focusedDate.day);
                   });
                 },
               ),
@@ -182,8 +211,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 icon: const Icon(Icons.arrow_right),
                 onPressed: () {
                   setState(() {
-                    focusedDate =
-                        DateTime(focusedDate.year, focusedDate.month + 1);
+                    focusedDate = DateTime(focusedDate.year,
+                        focusedDate.month + 1, focusedDate.day);
                   });
                 },
               ),
@@ -215,37 +244,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
               dowBuilder: (context, day) {
                 switch (day.weekday) {
                   case 1:
-                    return const Center(
-                      child: Text('월'),
-                    );
+                    return const Center(child: Text('월'));
                   case 2:
-                    return const Center(
-                      child: Text('화'),
-                    );
+                    return const Center(child: Text('화'));
                   case 3:
-                    return const Center(
-                      child: Text('수'),
-                    );
+                    return const Center(child: Text('수'));
                   case 4:
-                    return const Center(
-                      child: Text('목'),
-                    );
+                    return const Center(child: Text('목'));
                   case 5:
-                    return const Center(
-                      child: Text('금'),
-                    );
+                    return const Center(child: Text('금'));
                   case 6:
-                    return const Center(
-                      child: Text('토'),
-                    );
+                    return const Center(child: Text('토'));
                   case 7:
                     return const Center(
-                      child: Text(
-                        '일',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    );
+                        child: Text('일', style: TextStyle(color: Colors.red)));
                 }
+                return null;
               },
               defaultBuilder: (context, date, _) => Container(
                 margin: const EdgeInsets.all(4.0),
@@ -294,35 +308,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
               itemCount: dailyTasks.length,
               itemBuilder: (context, index) {
                 final task = dailyTasks[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 4.0),
-                  child: Card(
-                    elevation: 4,
-                    child: ListTile(
-                      title: Text(task['task']),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () {
-                              _showEditDialog(task);
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () {
-                              int taskId = task['id'] is int
-                                  ? task['id']
-                                  : int.parse(task['id']);
-                              _deleteTask(taskId);
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                return TaskItem(
+                  task: task,
+                  onDelete: _deleteTask,
+                  onEdit: _showEditDialog,
+                  onToggle: _toggleTaskCompletion,
                 );
               },
             ),
