@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:tj_pjt/pages/my_page.dart';
 import 'calendar_screen.dart';
 import 'diary_screen.dart';
 
@@ -57,7 +58,16 @@ class CustomDrawer extends StatelessWidget {
               );
             },
           ),
-          // Add more ListTiles here for other options if needed
+          ListTile(
+            leading: const Icon(Icons.person),
+            title: const Text('My Page'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MyPage()),
+              );
+            },
+          ),
         ],
       ),
     );

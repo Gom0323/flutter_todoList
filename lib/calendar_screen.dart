@@ -19,6 +19,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   final List<Map<String, dynamic>> tasks = [];
   final TextEditingController taskController = TextEditingController();
   final ApiService apiService = ApiService();
+  CalendarFormat _calendarFormat = CalendarFormat.week;
 
   @override
   void initState() {
@@ -58,7 +59,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _updateTask(int id, String task) async {
-    if (task != null && task.isNotEmpty) {
+    if (task.isNotEmpty) {
       final updatedTask = {
         'date': DateFormat('yyyy-MM-dd').format(selectedDate),
         'task': task,
@@ -70,8 +71,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       } catch (e) {
         print('Failed to update task: $e');
       }
-    } else {
-      print('Task is null or empty');
     }
   }
 
@@ -106,6 +105,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
+  // 빈칸으로 입력시 알림
   void _showAlertDialog() {
     showDialog(
       context: context,
@@ -165,7 +165,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
       selectedDate = selectedDay;
       focusedDate = focusedDay;
     });
-    _loadTasks();
   }
 
   bool isSameDay(DateTime date1, DateTime date2) {
@@ -191,42 +190,53 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('To_do List'),
+        actions: [
+          // 한달씩 or 일주일씩 보는 기능
+          IconButton(
+            icon: Icon(_calendarFormat == CalendarFormat.month
+                ? Icons.calendar_view_month
+                : Icons.calendar_view_week),
+            onPressed: () {
+              setState(() {
+                _calendarFormat = _calendarFormat == CalendarFormat.month
+                    ? CalendarFormat.week
+                    : CalendarFormat.month;
+              });
+            },
+          ),
+        ],
       ),
       drawer: const CustomDrawer(),
       body: Column(
         children: [
+          // 현재 연월
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_left),
-                onPressed: () {
-                  setState(() {
-                    focusedDate = DateTime(focusedDate.year,
-                        focusedDate.month - 1, focusedDate.day);
-                  });
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.arrow_right),
-                onPressed: () {
-                  setState(() {
-                    focusedDate = DateTime(focusedDate.year,
-                        focusedDate.month + 1, focusedDate.day);
-                  });
-                },
+              Text(
+                currentYearMonth,
+                style:
+                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              currentYearMonth,
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ),
           TableCalendar(
+            calendarFormat: _calendarFormat,
+            onFormatChanged: (format) {
+              setState(() {
+                _calendarFormat = format;
+              });
+            },
+            availableCalendarFormats: const {
+              CalendarFormat.month: 'Month',
+              CalendarFormat.week: 'Week',
+            },
             onDaySelected: onDaySelected,
+            onPageChanged: (focusedDay) {
+              setState(() {
+                focusedDate = focusedDay;
+              });
+            },
             headerVisible: false,
             selectedDayPredicate: (date) {
               return isSameDay(selectedDate, date);
@@ -301,6 +311,35 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
+              // 할일 추가될때 숫자로 몇개있는지 표시
+              markerBuilder: (context, date, events) {
+                if (events.isNotEmpty) {
+                  return Positioned(
+                    right: 1,
+                    bottom: 1,
+                    child: Container(
+                      padding: const EdgeInsets.all(3.0),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 20,
+                        minHeight: 20,
+                      ),
+                      child: Text(
+                        '${events.length}',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 10.0,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+                return null;
+              },
             ),
           ),
           Expanded(

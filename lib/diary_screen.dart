@@ -16,9 +16,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
   DateTime selectedDate = DateTime.now();
   DateTime focusedDate = DateTime.now();
   final TextEditingController diaryController = TextEditingController();
-  final Map<DateTime, Map<String, dynamic>> diaryTasks = {}; // 수정된 부분
+  final Map<DateTime, Map<String, dynamic>> diaryTasks = {};
   final ApiService apiService = ApiService(); // ApiService 인스턴스 생성
   String selectedWeather = '맑음'; // 초기 날씨 상태
+  CalendarFormat _calendarFormat = CalendarFormat.week;
 
   @override
   void initState() {
@@ -46,16 +47,21 @@ class _DiaryScreenState extends State<DiaryScreen> {
   }
 
   void _saveDiaryTask() async {
-    final newTask = {
-      'date': selectedDate.toIso8601String(),
-      'entry': diaryController.text,
-      'weather': selectedWeather,
-    };
-    try {
-      await apiService.addDiaryTask(newTask);
-      _loadDiaryTasks();
-    } catch (e) {
-      print('Failed to save diary task: $e');
+    final existingTask = diaryTasks[selectedDate];
+    if (existingTask != null) {
+      _updateDiaryTask(existingTask['id'], diaryController.text);
+    } else {
+      final newTask = {
+        'date': selectedDate.toIso8601String(),
+        'entry': diaryController.text,
+        'weather': selectedWeather,
+      };
+      try {
+        await apiService.addDiaryTask(newTask);
+        _loadDiaryTasks();
+      } catch (e) {
+        print('Failed to save diary task: $e');
+      }
     }
   }
 
@@ -110,33 +116,24 @@ class _DiaryScreenState extends State<DiaryScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Diary'),
+        actions: [
+          IconButton(
+            icon: Icon(_calendarFormat == CalendarFormat.month
+                ? Icons.calendar_view_month
+                : Icons.calendar_view_week),
+            onPressed: () {
+              setState(() {
+                _calendarFormat = _calendarFormat == CalendarFormat.month
+                    ? CalendarFormat.week
+                    : CalendarFormat.month;
+              });
+            },
+          ),
+        ],
       ),
       drawer: const CustomDrawer(),
       body: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_left),
-                onPressed: () {
-                  setState(() {
-                    focusedDate =
-                        DateTime(focusedDate.year, focusedDate.month - 1);
-                  });
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.arrow_right),
-                onPressed: () {
-                  setState(() {
-                    focusedDate =
-                        DateTime(focusedDate.year, focusedDate.month + 1);
-                  });
-                },
-              ),
-            ],
-          ),
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
@@ -145,7 +142,22 @@ class _DiaryScreenState extends State<DiaryScreen> {
             ),
           ),
           TableCalendar(
+            calendarFormat: _calendarFormat,
+            onFormatChanged: (format) {
+              setState(() {
+                _calendarFormat = format;
+              });
+            },
+            availableCalendarFormats: const {
+              CalendarFormat.month: 'Month',
+              CalendarFormat.week: 'Week',
+            },
             onDaySelected: onDaySelected,
+            onPageChanged: (focusedDay) {
+              setState(() {
+                focusedDate = focusedDay;
+              });
+            },
             headerVisible: false,
             selectedDayPredicate: (date) {
               return isSameDay(selectedDate, date);
@@ -192,6 +204,7 @@ class _DiaryScreenState extends State<DiaryScreen> {
                       ),
                     );
                 }
+                return null;
               },
               defaultBuilder: (context, date, _) => Container(
                 margin: const EdgeInsets.all(4.0),
@@ -233,28 +246,89 @@ class _DiaryScreenState extends State<DiaryScreen> {
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
+              markerBuilder: (context, date, events) {
+                if (events.isNotEmpty) {
+                  return Positioned(
+                    right: 1,
+                    bottom: 1,
+                    child: Container(
+                      padding: const EdgeInsets.all(6.0),
+                      decoration: BoxDecoration(
+                        color: Colors.blue,
+                        borderRadius: BorderRadius.circular(12.0),
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        '${events.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12.0,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
+                }
+                return null;
+              },
             ),
           ),
           Expanded(
             child: SingleChildScrollView(
-              child: DiaryInputForm(
-                controller: diaryController,
-                selectedWeather: selectedWeather,
-                onWeatherChanged: (String? newValue) {
-                  setState(() {
-                    selectedWeather = newValue!;
-                  });
-                },
-                onSave: _saveDiaryTask,
-                onDelete: () {
-                  int taskId = diaryTasks[selectedDate]?['id'] as int;
-                  _deleteDiaryTask(taskId);
-                },
+              child: Column(
+                children: [
+                  DiaryInputForm(
+                    controller: diaryController,
+                    selectedWeather: selectedWeather,
+                    onWeatherChanged: (String? newValue) {
+                      setState(() {
+                        selectedWeather = newValue!;
+                      });
+                    },
+                    onSave: _saveDiaryTask,
+                    onDelete: () {
+                      int taskId = diaryTasks[selectedDate]?['id'] as int;
+                      _deleteDiaryTask(taskId);
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  _buildDiaryList(),
+                ],
               ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildDiaryList() {
+    List<Widget> diaryListItems = [];
+
+    diaryTasks.forEach((date, task) {
+      diaryListItems.add(
+        ListTile(
+          title: Text(DateFormat.yMMMMd('ko_KR').format(date)),
+          subtitle: Text(task['entry']),
+          trailing: Text(task['weather']),
+          onTap: () {
+            setState(() {
+              selectedDate = date;
+              diaryController.text = task['entry'];
+              selectedWeather = task['weather'];
+            });
+          },
+        ),
+      );
+    });
+
+    return ListView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      children: diaryListItems,
     );
   }
 }

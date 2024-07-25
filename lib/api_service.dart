@@ -74,6 +74,7 @@ class ApiService {
   }
 
   Future<void> addCalendarTask(Map<String, dynamic> task) async {
+    print('Sending task: $task'); // 로그 추가
     final response = await http.post(
       Uri.parse('$baseUrl/calendar_tasks'),
       headers: {'Content-Type': 'application/json'},
@@ -88,6 +89,7 @@ class ApiService {
   }
 
   Future<void> updateCalendarTask(int id, Map<String, dynamic> task) async {
+    print('Updating task with id $id: $task'); // 로그 추가
     final response = await http.put(
       Uri.parse('$baseUrl/calendar_tasks/$id'),
       headers: {'Content-Type': 'application/json'},

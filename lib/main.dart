@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'calendar_screen.dart';
 import 'pages/login_page.dart';
-import 'pages/home_page.dart';
+import 'pages/my_page.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
@@ -49,10 +48,10 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       String? token = await storage.read(key: 'token');
       if (token != null) {
-        // Token exists, navigate to home page
+        // Token exists, navigate to MyPage
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => HomePage()),
+          MaterialPageRoute(builder: (context) => MyPage()),
         );
       } else {
         // No token, navigate to login page
@@ -72,7 +71,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return const Scaffold(
       body: Center(child: CircularProgressIndicator()),
     );
   }

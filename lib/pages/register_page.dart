@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class RegisterPage extends StatelessWidget {
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _useridController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
 
@@ -12,7 +12,7 @@ class RegisterPage extends StatelessWidget {
       Uri.parse('http://192.168.0.31:3001/api/register'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
-        'username': _usernameController.text,
+        'userid': _useridController.text,
         'password': _passwordController.text,
         'email': _emailController.text,
       }),
@@ -35,8 +35,8 @@ class RegisterPage extends StatelessWidget {
         child: Column(
           children: <Widget>[
             TextField(
-              controller: _usernameController,
-              decoration: InputDecoration(labelText: 'Username'),
+              controller: _useridController,
+              decoration: InputDecoration(labelText: 'Userid'),
             ),
             TextField(
               controller: _emailController,

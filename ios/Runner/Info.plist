@@ -51,6 +51,13 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
+	<!-- 프로필 사진관련 image_picker -->
+	<key>NSPhotoLibraryUsageDescription</key>
+		<string>We need access to your photo library to choose a profile picture.</string>
+		<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera to take a profile picture.</string>
 
+	<key>NSCalendarsUsageDescription</key>
+	<string>INSERT_REASON_HERE</string>
 </dict>
 </plist>
