@@ -11,11 +11,8 @@ class ApiService {
 
     if (response.statusCode == 200) {
       List tasks = json.decode(response.body);
-      print('Fetched diary tasks: $tasks'); // 디버깅을 위해 추가
       return tasks.map((task) => task as Map<String, dynamic>).toList();
     } else {
-      print('Failed to load diary tasks: ${response.reasonPhrase}');
-      print('Response body: ${response.body}'); // 응답 본문 출력
       throw Exception('Failed to load diary tasks');
     }
   }
@@ -28,8 +25,6 @@ class ApiService {
     );
 
     if (response.statusCode != 201) {
-      print('Failed to add diary task: ${response.reasonPhrase}');
-      print('Response body: ${response.body}'); // 응답 본문 출력
       throw Exception('Failed to add diary task');
     }
   }
@@ -42,8 +37,6 @@ class ApiService {
     );
 
     if (response.statusCode != 200) {
-      print('Failed to update diary task: ${response.reasonPhrase}');
-      print('Response body: ${response.body}'); // 응답 본문 출력
       throw Exception('Failed to update diary task');
     }
   }
@@ -52,8 +45,6 @@ class ApiService {
     final response = await http.delete(Uri.parse('$baseUrl/diary_tasks/$id'));
 
     if (response.statusCode != 204) {
-      print('Failed to delete diary task: ${response.reasonPhrase}');
-      print('Response body: ${response.body}'); // 응답 본문 출력
       throw Exception('Failed to delete diary task');
     }
   }
@@ -64,17 +55,13 @@ class ApiService {
 
     if (response.statusCode == 200) {
       List tasks = json.decode(response.body);
-      print('Fetched calendar tasks: $tasks'); // 디버깅을 위해 추가
       return tasks.map((task) => task as Map<String, dynamic>).toList();
     } else {
-      print('Failed to load calendar tasks: ${response.reasonPhrase}');
-      print('Response body: ${response.body}'); // 응답 본문 출력
       throw Exception('Failed to load calendar tasks');
     }
   }
 
   Future<void> addCalendarTask(Map<String, dynamic> task) async {
-    print('Sending task: $task'); // 로그 추가
     final response = await http.post(
       Uri.parse('$baseUrl/calendar_tasks'),
       headers: {'Content-Type': 'application/json'},
@@ -82,14 +69,11 @@ class ApiService {
     );
 
     if (response.statusCode != 201) {
-      print('Failed to add calendar task: ${response.reasonPhrase}');
-      print('Response body: ${response.body}'); // 응답 본문 출력
       throw Exception('Failed to add calendar task');
     }
   }
 
   Future<void> updateCalendarTask(int id, Map<String, dynamic> task) async {
-    print('Updating task with id $id: $task'); // 로그 추가
     final response = await http.put(
       Uri.parse('$baseUrl/calendar_tasks/$id'),
       headers: {'Content-Type': 'application/json'},
@@ -97,8 +81,6 @@ class ApiService {
     );
 
     if (response.statusCode != 200) {
-      print('Failed to update calendar task: ${response.reasonPhrase}');
-      print('Response body: ${response.body}'); // 응답 본문 출력
       throw Exception('Failed to update calendar task');
     }
   }
@@ -108,8 +90,6 @@ class ApiService {
         await http.delete(Uri.parse('$baseUrl/calendar_tasks/$id'));
 
     if (response.statusCode != 204) {
-      print('Failed to delete calendar task: ${response.reasonPhrase}');
-      print('Response body: ${response.body}'); // 응답 본문 출력
       throw Exception('Failed to delete calendar task');
     }
   }

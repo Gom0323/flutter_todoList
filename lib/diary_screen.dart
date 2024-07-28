@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:intl/intl.dart';
 import 'custom_drawer.dart';
-import 'diary_textform.dart'; // 입력 폼 위젯 파일 불러오기
-import 'api_service.dart'; // ApiService 파일 불러오기
+import 'diary_textform.dart';
+import 'api_service.dart';
 
 class DiaryScreen extends StatefulWidget {
   const DiaryScreen({super.key});
@@ -17,8 +17,8 @@ class _DiaryScreenState extends State<DiaryScreen> {
   DateTime focusedDate = DateTime.now();
   final TextEditingController diaryController = TextEditingController();
   final Map<DateTime, Map<String, dynamic>> diaryTasks = {};
-  final ApiService apiService = ApiService(); // ApiService 인스턴스 생성
-  String selectedWeather = '맑음'; // 초기 날씨 상태
+  final ApiService apiService = ApiService();
+  String selectedWeather = '맑음';
   CalendarFormat _calendarFormat = CalendarFormat.week;
 
   @override
@@ -33,9 +33,9 @@ class _DiaryScreenState extends State<DiaryScreen> {
       setState(() {
         diaryTasks.clear();
         for (var task in fetchedTasks) {
-          DateTime date = DateTime.parse(task['date']);
-          diaryTasks[date] = {
-            'id': task['id'], // 추가된 부분
+          DateTime date = DateTime.parse(task['date']).toLocal();
+          diaryTasks[DateTime(date.year, date.month, date.day)] = {
+            'id': task['id'],
             'entry': task['entry'],
             'weather': task['weather'],
           };
@@ -167,7 +167,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
             lastDay: DateTime(2030, 12, 31),
             daysOfWeekHeight: 30,
             eventLoader: (day) {
-              return diaryTasks.containsKey(day) ? [diaryTasks[day]] : [];
+              return diaryTasks
+                      .containsKey(DateTime(day.year, day.month, day.day))
+                  ? [diaryTasks[DateTime(day.year, day.month, day.day)]]
+                  : [];
             },
             calendarBuilders: CalendarBuilders(
               dowBuilder: (context, day) {
@@ -252,20 +255,20 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     right: 1,
                     bottom: 1,
                     child: Container(
-                      padding: const EdgeInsets.all(6.0),
+                      padding: const EdgeInsets.all(3.0),
                       decoration: BoxDecoration(
-                        color: Colors.blue,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(12.0),
                       ),
                       constraints: const BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
+                        minWidth: 20,
+                        minHeight: 20,
                       ),
                       child: Text(
                         '${events.length}',
                         style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12.0,
+                          color: Colors.black,
+                          fontSize: 10.0,
                         ),
                         textAlign: TextAlign.center,
                       ),
@@ -290,8 +293,10 @@ class _DiaryScreenState extends State<DiaryScreen> {
                     },
                     onSave: _saveDiaryTask,
                     onDelete: () {
-                      int taskId = diaryTasks[selectedDate]?['id'] as int;
-                      _deleteDiaryTask(taskId);
+                      int? taskId = diaryTasks[selectedDate]?['id'] as int?;
+                      if (taskId != null) {
+                        _deleteDiaryTask(taskId);
+                      }
                     },
                   ),
                   const SizedBox(height: 20),
