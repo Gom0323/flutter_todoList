@@ -25,7 +25,7 @@ class _MyPageState extends State<MyPage> {
   void initState() {
     super.initState();
     dio = Dio(BaseOptions(
-      baseUrl: 'http://192.168.0.31:3001',
+      baseUrl: 'http://192.168.0.27:3001',
       connectTimeout: const Duration(seconds: 5),
       receiveTimeout: const Duration(seconds: 3),
       headers: {
@@ -35,6 +35,9 @@ class _MyPageState extends State<MyPage> {
 
     if (widget.cookies != null) {
       dio.options.headers['cookie'] = widget.cookies!;
+      print('Cookie set: ${widget.cookies!}');
+    } else {
+      print('No cookies provided');
     }
 
     _loadProfilePicture();
@@ -82,6 +85,9 @@ class _MyPageState extends State<MyPage> {
         setState(() {
           _imageUrl = data['path'];
         });
+      } else if (response.statusCode == 401) {
+        print('Unauthorized request: ${response.statusCode}');
+        // 로그인 페이지로 리다이렉트 하거나, 사용자에게 알림
       } else {
         print('Failed to load profile picture');
         print('Response status code: ${response.statusCode}');

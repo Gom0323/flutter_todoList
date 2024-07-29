@@ -12,7 +12,7 @@ class LoginPage extends StatelessWidget {
 
   void _login(BuildContext context) async {
     final response = await http.post(
-      Uri.parse('http://192.168.0.31:3001/api/login'),
+      Uri.parse('http://192.168.0.27:3001/api/login'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'userid': _useridController.text,

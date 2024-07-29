@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   final String baseUrl =
-      'http://192.168.0.31:3001/api'; // Node.js 서버의 IP 주소 및 포트
+      'http://192.168.0.27:3001/api'; // Node.js 서버의 IP 주소 및 포트
 
   // Diary Tasks
   Future<List<Map<String, dynamic>>> fetchDiaryTasks() async {
