@@ -2,14 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:dio/dio.dart';
 import 'dart:io';
-
-import 'package:tj_pjt/calendar_screen.dart';
-import 'package:tj_pjt/diary_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../calendar_screen.dart';
+import '../diary_screen.dart';
 
 class MyPage extends StatefulWidget {
-  final String? cookies;
-
-  const MyPage({super.key, this.cookies});
+  const MyPage({super.key});
 
   @override
   _MyPageState createState() => _MyPageState();
@@ -32,15 +30,16 @@ class _MyPageState extends State<MyPage> {
         'Content-Type': 'application/json',
       },
     ));
+    _setDioCookies();
+  }
 
-    if (widget.cookies != null) {
-      dio.options.headers['cookie'] = widget.cookies!;
-      print('Cookie set: ${widget.cookies!}');
-    } else {
-      print('No cookies provided');
+  Future<void> _setDioCookies() async {
+    final prefs = await SharedPreferences.getInstance();
+    final cookies = prefs.getString('cookies');
+    if (cookies != null) {
+      dio.options.headers['cookie'] = cookies;
+      _loadProfilePicture(); // 쿠키 설정 후에 프로필 사진 로드
     }
-
-    _loadProfilePicture();
   }
 
   Future<void> _pickImage() async {
@@ -64,15 +63,10 @@ class _MyPageState extends State<MyPage> {
       final response =
           await dio.post('/api/upload_profile_picture', data: formData);
       if (response.statusCode == 200) {
-        print('Profile picture uploaded successfully');
         _loadProfilePicture(); // 업로드 후 이미지 다시 로드
-      } else {
-        print('Failed to upload profile picture');
-        print('Response data: ${response.data}');
       }
     } catch (e) {
-      print('Failed to upload profile picture');
-      print('Error: $e');
+      // Handle error silently
     }
   }
 
@@ -81,21 +75,12 @@ class _MyPageState extends State<MyPage> {
       final response = await dio.get('/api/profile_picture');
       if (response.statusCode == 200) {
         final data = response.data;
-        print('Profile picture URL: ${data['path']}');
         setState(() {
           _imageUrl = data['path'];
         });
-      } else if (response.statusCode == 401) {
-        print('Unauthorized request: ${response.statusCode}');
-        // 로그인 페이지로 리다이렉트 하거나, 사용자에게 알림
-      } else {
-        print('Failed to load profile picture');
-        print('Response status code: ${response.statusCode}');
-        print('Response data: ${response.data}');
       }
     } catch (e) {
-      print('Failed to load profile picture');
-      print('Error: $e');
+      // Handle error silently
     }
   }
 

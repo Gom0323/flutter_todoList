@@ -1,47 +1,71 @@
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'my_page.dart';
-import 'register_page.dart';
+import 'package:dio/dio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'register_page.dart'; // 회원가입 페이지를 가져옵니다
 
-class LoginPage extends StatelessWidget {
-  final TextEditingController _useridController = TextEditingController();
+class LoginScreen extends StatefulWidget {
+  @override
+  _LoginScreenState createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _userIdController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  late Dio dio;
 
-  LoginPage({super.key});
+  @override
+  void initState() {
+    super.initState();
+    dio = Dio(BaseOptions(
+      baseUrl: 'http://192.168.0.27:3001',
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 3),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    ));
+  }
 
-  void _login(BuildContext context) async {
-    final response = await http.post(
-      Uri.parse('http://192.168.0.27:3001/api/login'),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'userid': _useridController.text,
-        'password': _passwordController.text,
-      }),
-    );
+  Future<void> _login() async {
+    final String userId = _userIdController.text;
+    final String password = _passwordController.text;
 
-    if (response.statusCode == 200) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => MyPage()),
-      );
-    } else {
-      // Handle error
-      print('Failed to login: ${response.body}');
+    try {
+      final response = await dio.post('/api/login', data: {
+        'userid': userId,
+        'password': password,
+      });
+
+      if (response.statusCode == 200) {
+        final cookies = response.headers.map['set-cookie'];
+        if (cookies != null) {
+          final prefs = await SharedPreferences.getInstance();
+          prefs.setString('cookies', cookies.join(';'));
+          Navigator.pushReplacementNamed(context, '/mypage');
+        } else {
+          print('Login successful, but no cookies received');
+        }
+      } else {
+        print('Failed to login');
+        print('Response data: ${response.data}');
+      }
+    } catch (e) {
+      print('Failed to login');
+      print('Error: $e');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Login')),
+      appBar: AppBar(title: const Text('Login')),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: <Widget>[
             TextField(
-              controller: _useridController,
-              decoration: const InputDecoration(labelText: 'Userid'),
+              controller: _userIdController,
+              decoration: const InputDecoration(labelText: 'User ID'),
             ),
             TextField(
               controller: _passwordController,
@@ -50,15 +74,12 @@ class LoginPage extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             ElevatedButton(
-              onPressed: () => _login(context),
+              onPressed: _login,
               child: const Text('Login'),
             ),
             TextButton(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => RegisterPage()),
-                );
+                Navigator.pushNamed(context, '/register');
               },
               child: const Text('Register'),
             ),

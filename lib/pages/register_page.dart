@@ -9,7 +9,7 @@ class RegisterPage extends StatelessWidget {
 
   void _register(BuildContext context) async {
     final response = await http.post(
-      Uri.parse('http://192.168.0.31:3001/api/register'),
+      Uri.parse('http://192.168.0.27:3001/api/register'),
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({
         'userid': _useridController.text,
@@ -29,28 +29,28 @@ class RegisterPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Register')),
+      appBar: AppBar(title: const Text('Register')),
       body: Padding(
-        padding: EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           children: <Widget>[
             TextField(
               controller: _useridController,
-              decoration: InputDecoration(labelText: 'Userid'),
+              decoration: const InputDecoration(labelText: 'Userid'),
             ),
             TextField(
               controller: _emailController,
-              decoration: InputDecoration(labelText: 'Email'),
+              decoration: const InputDecoration(labelText: 'Email'),
             ),
             TextField(
               controller: _passwordController,
-              decoration: InputDecoration(labelText: 'Password'),
+              decoration: const InputDecoration(labelText: 'Password'),
               obscureText: true,
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () => _register(context),
-              child: Text('Register'),
+              child: const Text('Register'),
             ),
           ],
         ),

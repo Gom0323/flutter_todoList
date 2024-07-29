@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'pages/login_page.dart';
-import 'pages/my_page.dart';
+import 'login_screen.dart';
+import './pages/my_page.dart';
+import './pages/register_page.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 Future<void> main() async {
@@ -23,6 +24,11 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
       ),
       home: const SplashScreen(),
+      routes: {
+        '/login': (context) => LoginScreen(),
+        '/mypage': (context) => MyPage(),
+        '/register': (context) => RegisterPage(),
+      },
     );
   }
 }
@@ -47,23 +53,21 @@ class _SplashScreenState extends State<SplashScreen> {
     try {
       String? token = await storage.read(key: 'token');
       if (token != null) {
-        // Token exists, navigate to MyPage
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => MyPage()),
         );
       } else {
-        // No token, navigate to login page
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (context) => LoginPage()),
+          MaterialPageRoute(builder: (context) => LoginScreen()),
         );
       }
     } catch (e) {
       print('Error reading token: $e');
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => LoginPage()),
+        MaterialPageRoute(builder: (context) => LoginScreen()),
       );
     }
   }
